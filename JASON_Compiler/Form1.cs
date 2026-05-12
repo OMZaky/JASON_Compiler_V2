@@ -31,12 +31,21 @@ namespace JASON_Compiler
 
         private void button1_Click(object sender, EventArgs e)
         {
+            // 1. Clear the UI completely
             textBox2.Clear();
-            Errors.Error_List.Clear();
             treeView1.Nodes.Clear();
+            dataGridView1.Rows.Clear();
 
-            string Code =textBox1.Text.ToLower();
+            // 2. WIPE THE INTERNAL MEMORY (This is what the Clear button does!)
+            Errors.Error_List.Clear();
+            JASON_Compiler.TokenStream.Clear();
+            JASON_Compiler.Jason_Scanner.Tokens.Clear();
+
+            // 3. Get the new code and compile
+            string Code = textBox1.Text.ToLower();
             JASON_Compiler.Start_Compiling(Code);
+
+            // 4. Print the fresh data
             PrintTokens();
             treeView1.Nodes.Add(Parser.PrintParseTree(JASON_Compiler.treeroot));
             PrintErrors();
