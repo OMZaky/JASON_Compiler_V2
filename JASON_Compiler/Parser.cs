@@ -180,7 +180,7 @@ namespace JASON_Compiler
             else
             {
                 int lineNum = TokenStream[InputPointer].line_num;
-                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement."); InputPointer++;
+                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement.\n"); InputPointer++;
             }
 
             return stmt;
