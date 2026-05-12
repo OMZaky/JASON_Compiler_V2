@@ -15,12 +15,27 @@ namespace JASON_Compiler
         public Form1()
         {
             InitializeComponent();
+
+            // Calculate 80% of the user's actual screen width and height
+            int screenWidth = Screen.PrimaryScreen.WorkingArea.Width;
+            int screenHeight = Screen.PrimaryScreen.WorkingArea.Height;
+
+            this.Width = (int)(screenWidth * 0.74);
+            this.Height = (int)(screenHeight * 0.71);
+
+            this.StartPosition = FormStartPosition.CenterScreen;
+
+
+            this.AutoScaleMode = AutoScaleMode.Dpi;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
             textBox2.Clear();
-            string Code=textBox1.Text.ToLower();
+            Errors.Error_List.Clear();
+            treeView1.Nodes.Clear();
+
+            string Code =textBox1.Text.ToLower();
             JASON_Compiler.Start_Compiling(Code);
             PrintTokens();
             treeView1.Nodes.Add(Parser.PrintParseTree(JASON_Compiler.treeroot));
@@ -55,6 +70,10 @@ namespace JASON_Compiler
             treeView1.Nodes.Clear();
             Errors.Error_List.Clear();
         }
-        
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

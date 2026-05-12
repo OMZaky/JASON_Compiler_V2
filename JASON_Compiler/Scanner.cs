@@ -119,7 +119,7 @@ namespace JASON_Compiler
                     // Did we hit the end of the file without closing the comment?
                     if (i >= SourceCode.Length)
                     {
-                        Errors.Error_List.Add($"Line {startLine} | Lexical Error: Unclosed multi-line comment");
+                        Errors.Error_List.Add($"Line {startLine} | Lexical Error: Unclosed multi-line comment\n");
                         continue;
                     }
 
@@ -193,7 +193,7 @@ namespace JASON_Compiler
                     }
                     else
                     {
-                        Errors.Error_List.Add($"Line {startLine} | Lexical Error: Unclosed string literal");
+                        Errors.Error_List.Add($"Line {startLine} | Lexical Error: Unclosed string literal\n");
                     }
                 }
 
@@ -271,7 +271,7 @@ namespace JASON_Compiler
             else
             {
                 // If it falls through all checks, it's an error. 
-                Errors.Error_List.Add($"Line {LineNumber} | Lexical Error: Unrecognized token '{Lex}'");
+                Errors.Error_List.Add($"Line {LineNumber} | Lexical Error: Unrecognized token '{Lex}'\n");
                 return;
             }
 
