@@ -137,6 +137,78 @@ namespace JASON_Compiler
         }
 
 
+        // There are 3 variations of the nodes Satatements and Statement
+        // depending on how we wanna handle the errors
+
+
+        /* * VARIATION 1: STRICT STARTER PARSING
+         * Approach: Only enter the statement loop if the current token is in the 'statementStarters' list.
+         * Weakness: Highly fragile. A single unauthorized token (like a stray '*') immediately terminates 
+         * the while loop, causing the parser to abandon the rest of the file and miss subsequent errors.
+         */
+
+#if false
+
+        Node Statements()
+        {
+            Node statementsNode = new Node("Statements");
+            
+            while (InputPointer < TokenStream.Count && statementStarters.Contains(TokenStream[InputPointer].token_type))
+            {
+                statementsNode.Children.Add(Statement());
+            }
+            
+            return statementsNode;
+        }
+
+        Node Statement()
+        {
+            Node stmt = new Node("Statement");
+            if (InputPointer >= TokenStream.Count) return stmt;
+
+            Token_Class current = TokenStream[InputPointer].token_type;
+
+            if (current == Token_Class.Read)
+                stmt.Children.Add(Read_Statement());
+            else if (current == Token_Class.Write)
+                stmt.Children.Add(Write_Statement());
+            else if (current == Token_Class.If)
+                stmt.Children.Add(If_Statement());
+            else if (current == Token_Class.Repeat)
+                stmt.Children.Add(Repeat_Statement());
+            else if (Datatype_tokens.Contains(current))
+                stmt.Children.Add(Declaration_Statement());
+            else if (current == Token_Class.Identifier)
+            {
+                if (InputPointer + 1 < TokenStream.Count && TokenStream[InputPointer + 1].token_type == Token_Class.AssignmentOp)
+                    stmt.Children.Add(Assignment_Statement());
+                else
+                    stmt.Children.Add(Function_Call_Standalone());
+            }
+            else
+            {
+                // In Variation 1, this else block is practically "dead code" because the 
+                // statementsNode while loop filters out bad tokens before they ever reach here.
+                int lineNum = TokenStream[InputPointer].line_num;
+                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement.");
+                InputPointer++;
+            }
+
+            return stmt;
+        }
+
+#endif
+
+
+        /* * VARIATION 2: THE TERMINATOR LOOP (PANIC MODE V1)
+         * Approach: Loop continuously until an end-of-block token is found (Return, Until, End, Else).
+         * Strength: Guarantees the parser reaches the end of the file instead of quitting on the first typo.
+         * Weakness: Causes "Error Cascades". Skipping a single bad token shifts the LL(1) alignment, 
+         * causing the parser to misinterpret the next several tokens and spam the error log.
+         */
+
+
+
         Node Statements()
         {
             Node statementsNode = new Node("Statements");
@@ -180,11 +252,87 @@ namespace JASON_Compiler
             else
             {
                 int lineNum = TokenStream[InputPointer].line_num;
-                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement.\n"); InputPointer++;
+                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement.\n"); 
+                InputPointer++;
             }
 
             return stmt;
         }
+
+
+
+        /* * VARIATION 3: SYNCHRONIZATION TOKEN RECOVERY (OPTIMAL)
+         * Approach: Combines the resilient Terminator Loop with a Sync-Token fast-forward mechanism.
+         * Strength: Highly robust. When an unauthorized token starts a statement, the parser logs ONE 
+         * clean error, then fast-forwards to the nearest semicolon. This perfectly realigns the 
+         * Token Stream for the next statement, eliminating Error Cascades entirely.
+         */
+
+#if false
+
+        Node Statements()
+        {
+            Node statementsNode = new Node("Statements");
+
+            // Conveyor Belt: Feed everything into Statement() until a block terminator is reached.
+            while (InputPointer < TokenStream.Count &&
+                   TokenStream[InputPointer].token_type != Token_Class.Return &&
+                   TokenStream[InputPointer].token_type != Token_Class.Until &&
+                   TokenStream[InputPointer].token_type != Token_Class.End &&
+                   TokenStream[InputPointer].token_type != Token_Class.ElseIf &&
+                   TokenStream[InputPointer].token_type != Token_Class.Else)
+            {
+                statementsNode.Children.Add(Statement());
+            }
+
+            return statementsNode;
+        }
+
+        Node Statement()
+        {
+            Node stmt = new Node("Statement");
+            if (InputPointer >= TokenStream.Count) return stmt;
+
+            Token_Class current = TokenStream[InputPointer].token_type;
+
+            if (current == Token_Class.Read) stmt.Children.Add(Read_Statement());
+            else if (current == Token_Class.Write) stmt.Children.Add(Write_Statement());
+            else if (current == Token_Class.If) stmt.Children.Add(If_Statement());
+            else if (current == Token_Class.Repeat) stmt.Children.Add(Repeat_Statement());
+            else if (Datatype_tokens.Contains(current)) stmt.Children.Add(Declaration_Statement());
+            else if (current == Token_Class.Identifier)
+            {
+                if (InputPointer + 1 < TokenStream.Count && TokenStream[InputPointer + 1].token_type == Token_Class.AssignmentOp)
+                    stmt.Children.Add(Assignment_Statement());
+                else
+                    stmt.Children.Add(Function_Call_Standalone());
+            }
+            else
+            {
+                // Panic Mode V2 (Sync Tokens): Log error, then fast-forward to realign.
+                int lineNum = TokenStream[InputPointer].line_num;
+                Errors.Error_List.Add($"Line {lineNum} | Parsing Error: Unexpected token {current} at start of statement.");
+
+                while (InputPointer < TokenStream.Count &&
+                       TokenStream[InputPointer].token_type != Token_Class.Semicolon &&
+                       TokenStream[InputPointer].token_type != Token_Class.Return &&
+                       TokenStream[InputPointer].token_type != Token_Class.End &&
+                       TokenStream[InputPointer].token_type != Token_Class.Until)
+                {
+                    InputPointer++;
+                }
+
+                // Consume the semicolon so the loop starts perfectly fresh on the next valid statement
+                if (InputPointer < TokenStream.Count && TokenStream[InputPointer].token_type == Token_Class.Semicolon)
+                {
+                    InputPointer++;
+                }
+            }
+
+            return stmt;
+        }
+
+#endif
 
         Node Declaration_Statement()
         {
